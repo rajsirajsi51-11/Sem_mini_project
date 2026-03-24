@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Student Dashboard</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Student Performance Dashboard</h2>
+
+<form action="/home" method="post">
+
+<input name="student_name" placeholder="Name" required>
+<input name="student_class" placeholder="Class" required>
+
+<input name="syllabus" placeholder="Syllabus (e.g. 6/10)" required>
+<input type="date" name="exam_date" required>
+
+<input name="study" placeholder="Study Hours" required>
+<input name="attendance" placeholder="Attendance" required>
+<input name="sleep" placeholder="Sleep" required>
+<input name="marks" placeholder="Marks" required>
+<input name="guidance" placeholder="Guidance" required>
+<input name="internet" placeholder="Internet" required>
+<input name="activities" placeholder="Activities" required>
+
+<button>Predict</button>
+
+</form>
+
+{% if result %}
+
+<div id="report">
+
+<h3>{{ name }} ({{ student_class }})</h3>
+<h4>Syllabus: {{ syllabus }}</h4>
+<h4>Exam: {{ exam_date }} | Days Left: {{ days_left }}</h4>
+
+<h3>{{ result }} | Score: {{ score }}</h3>
+
+<ul>
+{% for s in suggestions %}
+<li>{{ s }}</li>
+{% endfor %}
+</ul>
+
+<h3>Time Distribution</h3>
+<div class="chart-box">
+<canvas id="pie1"></canvas>
+</div>
+
+<h3>Suggested Routine</h3>
+<div class="chart-box">
+<canvas id="pie2"></canvas>
+</div>
+
+</div>
+
+<button onclick="downloadPDF()">Download Report</button>
+
+<script>
+
+// SAFE VALUES
+let study = Number("{{ study or 0 }}");
+let sleep = Number("{{ sleep or 0 }}");
+
+let other = 24 - (study + sleep);
+if (other < 0) other = 0;
+
+// ACTUAL PIE
+new Chart(document.getElementById("pie1"), {
+    type: 'pie',
+    data: {
+        labels: ["Study", "Sleep", "Other"],
+        datasets: [{
+            data: [study, sleep, other]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+// SUGGESTED PIE
+new Chart(document.getElementById("pie2"), {
+    type: 'pie',
+    data: {
+        labels: ["Study", "Sleep", "Other"],
+        datasets: [{
+            data: [6, 7, 11]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+// PDF
+function downloadPDF() {
+    html2canvas(document.getElementById("report"), {
+        scale: 2
+    }).then(canvas => {
+
+        fetch("/download", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ image: canvas.toDataURL() })
+        })
+        .then(res => res.blob())
+        .then(blob => {
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "report.pdf";
+            link.click();
+        });
+
+    });
+}
+
+</script>
+
+{% endif %}
+
+</div>
+
+</body>
+</html>
